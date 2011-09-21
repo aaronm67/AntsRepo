@@ -57,7 +57,22 @@ namespace Ants
 
         public double GetDistance(Location loc)
         {
-            return State.GetDistance(this, loc);
+            return this.State.GetDistance(this, loc);
+        }
+
+        public Location GetDestination(Direction dir)
+        {
+            return this.State.GetDestination(this, dir);
+        }
+
+        public IEnumerable<Direction> GetDirections(Location loc)
+        {
+            return this.State.GetDirection(this, loc);
+        }
+
+        public bool HasFood()
+        {
+            return this.State.HasFood(this);
         }
     }
 
@@ -73,29 +88,50 @@ namespace Ants
             this.Team = team;
         }
 
-        public void Move()
+        public bool Move()
         {
             if (this.Target != null)
             {
-                foreach (var d in State.GetDirection(this, this.Target))
+                foreach (var d in this.GetDirections(this.Target))
                 {
                     if (this.IsValidMove(d))
                     {
                         this.Move(d);
-                        break;
+                        return true;
                     }
                 }
             }
+
+            return false;
         }
 
         public bool IsValidMove(Direction direction)
         {
-            return State.IsPassable(State.Destination(this, direction));
+            return State.IsPassable(State.GetDestination(this, direction));
         }
 
-        public void Move(Direction direction)
+        public bool GetFood(Location l)
         {
-            this.State.issueOrder(this, direction);
+            if (l.HasFood())
+            {
+                this.Target = l;
+                this.Move();
+
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool Move(Direction direction)
+        {
+            if (this.IsValidMove(direction))
+            {
+                this.State.issueOrder(this, direction);
+                return true;
+            }
+
+            return false;
         }
     }
 

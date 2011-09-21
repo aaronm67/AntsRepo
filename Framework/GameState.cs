@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 
 namespace Ants
 {
@@ -65,7 +66,6 @@ namespace Ants
             }
         }
 
-
         internal void issueOrder(Location loc, Direction direction)
         {
             issueOrder(loc, direction.ToChar());
@@ -73,7 +73,8 @@ namespace Ants
 
         internal void issueOrder(Location loc, char direction)
         {
-            System.Console.Out.WriteLine("o {0} {1} {2}", loc.Row, loc.Col, direction);
+            var cmd = String.Format("o {0} {1} {2}", loc.Row, loc.Col, direction);
+            System.Console.Out.WriteLine(cmd);
         }
 
         internal void startNewTurn()
@@ -163,12 +164,17 @@ namespace Ants
             return IsPassable(loc) && map[loc.Row, loc.Col] != Tile.Ant;
         }
 
-        public Location Destination(Location loc, Direction direction)
+        public Location GetDestination(Location loc, Direction direction)
         {
-            return Destination(loc, direction.ToChar());
+            return GetDestination(loc, direction.ToChar());
         }
 
-        public Location Destination(Location loc, char direction)
+        public bool HasFood(Location l)
+        {
+            return FoodTiles.Any(f => f.Col == l.Col && f.Row == l.Row);
+        }
+
+        public Location GetDestination(Location loc, char direction)
         {
             // calculate a new location given the direction and wrap correctly
             Direction delta = Ants.Aim[direction];

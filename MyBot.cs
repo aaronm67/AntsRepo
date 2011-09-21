@@ -7,26 +7,58 @@ namespace AntsBot
 {
 	public class MyBot : Bot 
     {
+        private HashSet<Location> Destinations;
+        private Random rng;
+
+        public MyBot()
+        {
+            this.Destinations = new HashSet<Location>(new LocationComparer());
+            rng = new Random();
+        }
+
 		public override void doTurn (GameState state) 
         {
-			// loop through all my ants and try to give them orders
-			foreach (AntLoc ant in state.MyAnts) 
+            foreach (AntLoc ant in state.MyAnts)
             {
-                if (state.TimeRemaining < 10) break;
+                Location closestFood = null;
+                int closestDist = int.MaxValue;
 
-                if (ant.Target != null)
+                foreach (Location food in state.FoodTiles)
                 {
-                    ant.Move();
+                    int dist = state.GetDistance(ant, food);
+                    if (dist < closestDist)
+                    {
+                        closestDist = dist;
+                        closestFood = food;
+                    }
                 }
-                else 
-                {
-                    var min = state.FoodTiles.Select(food => new { 
-                        Tile = food,
-                        Distance = ant.GetDistance(food)
-                    });
 
-                    ant.Target = min.OrderBy(f => f.Distance).First().Tile;
-                    ant.Move();
+                IEnumerable<Direction> directions = Enumerable.Empty<Direction>();
+                if (closestFood != null)
+                    directions = ant.GetDirections(closestFood);
+                else 
+                    directions = Ants.Ants.Aim.Values.OrderBy(c => rng.Next());
+
+                bool moved = false;
+                foreach (var d in directions)
+                {
+                    var newLoc = ant.GetDestination(d);
+                    if (state.IsUnoccupied(newLoc) && state.IsPassable(newLoc))
+                    {
+                        ant.Move(d);
+                        moved = true;
+                        break;
+                    }                                
+                }
+
+                var randomdirs = Ants.Ants.Aim.Values.OrderBy(c => rng.Next());
+                foreach (var dir in randomdirs)
+                {
+                    var newLoc = ant.GetDestination(dir);
+                    if (state.IsUnoccupied(newLoc) && state.IsPassable(newLoc))
+                    {
+                        ant.Move(dir);
+                    }
                 }
             }
 		}
