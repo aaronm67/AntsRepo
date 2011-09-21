@@ -74,13 +74,21 @@ namespace Ants
         {
             return this.State.HasFood(this);
         }
+
+        public bool IsUnoccupied()
+        {
+            return this.State.IsUnoccupied(this);
+        }
+
+        public System.Drawing.Point ToPoint()
+        {
+            return new System.Drawing.Point(this.Row, this.Col);
+        }
     }
 
     public class AntLoc : Location
     {
         public int Team { get; private set; }
-
-        public Location Target { get; set; }
 
         public AntLoc(GameState state, int row, int col, int team)
             : base(state, row, col)
@@ -88,39 +96,9 @@ namespace Ants
             this.Team = team;
         }
 
-        public bool Move()
-        {
-            if (this.Target != null)
-            {
-                foreach (var d in this.GetDirections(this.Target))
-                {
-                    if (this.IsValidMove(d))
-                    {
-                        this.Move(d);
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
         public bool IsValidMove(Direction direction)
         {
             return State.IsPassable(State.GetDestination(this, direction));
-        }
-
-        public bool GetFood(Location l)
-        {
-            if (l.HasFood())
-            {
-                this.Target = l;
-                this.Move();
-
-                return false;
-            }
-
-            return true;
         }
 
         public bool Move(Direction direction)
