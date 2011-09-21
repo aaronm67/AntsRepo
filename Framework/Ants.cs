@@ -3,21 +3,14 @@ using System.IO;
 using System.Collections.Generic;
 
 namespace Ants {
-
 	public class Ants {
-		
-		public static readonly Location North = new Location(-1, 0);
-		public static readonly Location South = new Location(1, 0);
-		public static readonly Location West = new Location(0, -1);
-		public static readonly Location East = new Location(0, 1);
-		
-		public static IDictionary<char, Location> Aim = new Dictionary<char, Location> {
-			{'n', North},
-			{'e', East},
-			{'s', South},
-			{'w', West}
+        public static IDictionary<char, Direction> Aim = new Dictionary<char, Direction> {
+			{'n', Direction.North},
+			{'e', Direction.East},
+			{'s', Direction.South},
+			{'w', Direction.West}
 		};
-		
+
 		private const string READY = "ready";
 		private const string GO = "go";
 		private const string END = "end";
