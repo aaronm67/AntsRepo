@@ -57,13 +57,11 @@ namespace Ants
             }
             catch (Exception e)
             {
-#if DEBUG
                 FileStream fs = new FileStream("debug.log", System.IO.FileMode.Create, System.IO.FileAccess.Write);
                 StreamWriter sw = new StreamWriter(fs);
                 sw.WriteLine(e);
                 sw.Close();
                 fs.Close();
-#endif
             }
 
         }

@@ -32,7 +32,7 @@ namespace Ants
         public List<Location> DeadTiles;
         public List<Location> FoodTiles;
 
-        private Tile[,] map;
+        public Tile[,] Map;
 
         #region Keep Game State
 
@@ -56,12 +56,12 @@ namespace Ants
             DeadTiles = new List<Location>();
             FoodTiles = new List<Location>();
 
-            map = new Tile[height, width];
+            Map = new Tile[height, width];
             for (int row = 0; row < height; row++)
             {
                 for (int col = 0; col < width; col++)
                 {
-                    map[row, col] = Tile.Land;
+                    Map[row, col] = new Tile(TileType.Land, new Location(this, row, col));
                 }
             }
         }
@@ -84,11 +84,11 @@ namespace Ants
 
             // clear ant data
             foreach (Location loc in MyAnts)
-                map[loc.Row, loc.Col] = Tile.Land;
+                Map[loc.Row, loc.Col] = new Tile(TileType.Land, loc);
             foreach (Location loc in EnemyAnts)
-                map[loc.Row, loc.Col] = Tile.Land;
+                Map[loc.Row, loc.Col] = new Tile(TileType.Land, loc);
             foreach (Location loc in DeadTiles)
-                map[loc.Row, loc.Col] = Tile.Land;
+                Map[loc.Row, loc.Col] = new Tile(TileType.Land, loc);
 
             MyAnts.Clear();
             EnemyAnts.Clear();
@@ -96,15 +96,14 @@ namespace Ants
 
             // set all known food to unseen
             foreach (Location loc in FoodTiles)
-                map[loc.Row, loc.Col] = Tile.Land;
+                Map[loc.Row, loc.Col] = new Tile(TileType.Land, loc);
             FoodTiles.Clear();
         }
 
         internal void addAnt(int row, int col, int team)
-        {
-            map[row, col] = Tile.Ant;
-
+        {            
             AntLoc ant = new AntLoc(this, row, col, team);
+            Map[row, col] = new Tile(TileType.Ant, ant);
             if (team == 0)
             {
                 MyAnts.Add(ant);
@@ -117,37 +116,40 @@ namespace Ants
 
         internal void addFood(int row, int col)
         {
-            map[row, col] = Tile.Food;
-            FoodTiles.Add(new Location(this, row, col));
+            var loc = new Location(this, row, col);
+            Map[row, col] = new Tile(TileType.Food, loc);
+            FoodTiles.Add(loc);
         }
 
         internal void removeFood(int row, int col)
         {
             // an ant could move into a spot where a food just was
             // don't overwrite the space unless it is food
-            if (map[row, col] == Tile.Food)
+            var loc = new Location(this, row, col);
+            if (Map[row, col].Type == TileType.Food)
             {
-                map[row, col] = Tile.Land;
+                Map[row, col] = new Tile(TileType.Land, loc);
             }
-            FoodTiles.Remove(new Location(this, row, col));
+            FoodTiles.Remove(loc);
         }
 
         internal void addWater(int row, int col)
         {
-            map[row, col] = Tile.Water;
+            Map[row, col] = new Tile(TileType.Water, new Location(this, row, col));
         }
 
         internal void deadAnt(int row, int col)
         {
             // food could spawn on a spot where an ant just died
             // don't overwrite the space unless it is land
-            if (map[row, col] == Tile.Land)
+            var loc = new Location(this, row, col);
+            if (Map[row, col].Type == TileType.Land)
             {
-                map[row, col] = Tile.Dead;
+                Map[row, col] = new Tile(TileType.Dead, loc);
             }
 
             // but always add to the dead list
-            DeadTiles.Add(new Location(this, row, col));
+            DeadTiles.Add(loc);
         }
 
         #endregion
@@ -155,13 +157,13 @@ namespace Ants
         public bool IsPassable(Location loc)
         {
             // true if not water
-            return map[loc.Row, loc.Col] != Tile.Water;
+            return Map[loc.Row, loc.Col].Type != TileType.Water;
         }
 
         public bool IsUnoccupied(Location loc)
         {
             // true if no ants are at the location
-            return IsPassable(loc) && map[loc.Row, loc.Col] != Tile.Ant;
+            return IsPassable(loc) && Map[loc.Row, loc.Col].Type != TileType.Ant;
         }
 
         public Location GetDestination(Location loc, Direction direction)
