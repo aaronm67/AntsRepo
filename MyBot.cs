@@ -35,7 +35,6 @@ namespace AntsBot
 
             foreach (AntLoc ant in state.MyAnts)
             {
-<<<<<<< HEAD
                 if (state.TimeRemaining < 10)
                 {
                     break;
@@ -43,12 +42,7 @@ namespace AntsBot
 
                 // performance checks
                 var searchingspots = state.FoodTiles.Where(f => !( FoodSpots.Count(s => s == f) > 1 ));
-                searchingspots = searchingspots.Where(f => f.GetDistance(ant) < 10);
-=======
-                // performance checks
-                var searchingspots = state.FoodTiles.Where(f => !( FoodSpots.Count(s => s == f) > 1 ));
                 searchingspots = searchingspots.Where(f => f.GetDistance(ant) < GetSearchRadius(state)).OrderBy(f => f.GetDistance(ant)).Take(2);
->>>>>>> 41b20b4f2581aeab1014090398f434c82d0aee9d
 
                 var directions = Enumerable.Empty<Direction>();
 
@@ -70,20 +64,6 @@ namespace AntsBot
                         directions = ant.GetDirections(point.Location);
                     else if (closest != null)
                         directions = ant.GetDirections(closest.Tile);
-
-<<<<<<< HEAD
-                }
-
-                // we found no food...lets kill some dudes...but only if I have a lot of em.
-                if (!directions.Any())
-                {
-
-                }
-
-
-                // wander aimlessly
-=======
-                    ant.Seeking = true;
                 }
 
                 if (state.TimeRemaining < 10)
@@ -109,8 +89,7 @@ namespace AntsBot
                 //        }
                 //    }
                 //}
-
-                // wander aimlessly
+                
                 if (!directions.Any())
                 {
                     // try and figure out how close to the edge of vision I am
@@ -180,19 +159,16 @@ namespace AntsBot
                     break;
                 }
                 
->>>>>>> 41b20b4f2581aeab1014090398f434c82d0aee9d
+				// wander aimlessly
                 if (!directions.Any())
                 {
                     directions = Ants.Ants.Aim.Values.OrderBy(c => rng.Next());
                 }
-<<<<<<< HEAD
-=======
 
                 if (state.TimeRemaining < 10)
                 {
                     break;
                 }
->>>>>>> 41b20b4f2581aeab1014090398f434c82d0aee9d
 
                 foreach (var d in directions)
                 {
