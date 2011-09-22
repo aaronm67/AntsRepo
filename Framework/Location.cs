@@ -89,11 +89,13 @@ namespace Ants
     public class AntLoc : Location
     {
         public int Team { get; private set; }
+        public bool Seeking { get; set; }
 
         public AntLoc(GameState state, int row, int col, int team)
             : base(state, row, col)
         {
             this.Team = team;
+            this.Seeking = false;
         }
 
         public bool IsValidMove(Direction direction)
