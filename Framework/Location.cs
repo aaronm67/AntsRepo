@@ -75,6 +75,11 @@ namespace Ants
             return this.State.HasFood(this);
         }
 
+        public bool IsPassable()
+        {
+            return this.State.IsPassable(this);
+        }
+
         public bool IsUnoccupied()
         {
             return this.State.IsUnoccupied(this);

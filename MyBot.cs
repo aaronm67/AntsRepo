@@ -4,20 +4,54 @@ using System.Linq;
 using Ants;
 using SettlersEngine;
 using System.Drawing;
+using System.IO;
 
 namespace AntsBot
 {
+    public class Goal
+    {
+        public Location StartPoint { get; private set; }
+        public Location CurrentPoint { get; set; }
+
+        public Location EndPoint
+        {
+            get
+            {
+                return this.StartPath.Last().Location;
+            }
+        }
+
+        public IEnumerable<Tile> StartPath { get; private set; }
+
+        public Queue<Tile> CurrentPath;
+
+        public Func<GameState, bool> IsTerminated { get; private set; }
+
+        public Goal(Location startPoint, IEnumerable<Tile> path, Func<GameState, bool> terminationFunc)
+        {
+            this.CurrentPath = new Queue<Tile>(path);
+            this.CurrentPath.Dequeue();
+
+            this.StartPath = path;
+
+            this.StartPoint = this.CurrentPoint = startPoint;
+            this.IsTerminated = terminationFunc;
+        }
+    }
+
 	public class MyBot : Bot 
     {
-        private HashSet<Location> FoodSpots;
         private HashSet<Location> Destinations;
+        private SpatialAStar<Tile, object> astar;
+
+        private List<Goal> Goals;
 
         private Random rng;
 
         public MyBot()
         {
             this.Destinations = new HashSet<Location>(new LocationComparer());
-            this.FoodSpots = new HashSet<Location>(new LocationComparer());
+            this.Goals = new List<AntsBot.Goal>();
             rng = new Random();
         }
 
@@ -26,158 +60,149 @@ namespace AntsBot
             return Math.Sqrt(state.Width * state.Height) / 15;
         }
 
+        private Goal FindFood(AntLoc ant, GameState state)
+        {
+            // look for some food
+            var searchingspots = state.FoodTiles.Where(f => !(Goals.Count(g => g.EndPoint == f) > 1));
+            //searchingspots = searchingspots.Where(f => f.GetDistance(ant) < GetSearchRadius(state)).OrderBy(f => f.GetDistance(ant)).Take(2);
+            var antpoint = ant.ToPoint();
+            var foodpoints = searchingspots.Select(f => new
+            {
+                Tile = f,
+                Point = f.ToPoint(),
+                Path = astar.Search(ant.ToPoint(), f.ToPoint(), new Object()) ?? Enumerable.Empty<Tile>()
+            });
+
+            var closest = foodpoints.OrderBy(f => f.Path.Count()).FirstOrDefault();
+
+            if (closest != null)
+            {
+                var goal = new Goal(closest.Tile, closest.Path, ( g => g.HasFood(closest.Tile) ));
+                return goal;
+            }
+
+            return null;
+        }
+
+        private Goal FindEnemies(AntLoc ant, GameState state)
+        {
+            return null;
+        }
+
+        private Goal SpreadOut(AntLoc ant, GameState state)
+        { 
+            // try and figure out how close to the edge of vision I am
+            var x = ant.Col;
+            var y = ant.Row;
+
+            var minX = state.MyAnts.Min(a => a.Col);
+            var maxX = state.MyAnts.Max(a => a.Col);
+            var minY = state.MyAnts.Min(a => a.Row);
+            var maxY = state.MyAnts.Max(a => a.Row);
+
+            var widthModifier = state.Width / 50;
+            var heightModifier = state.Height / 50;
+
+            Func<GameState, bool> terminationFunc = (s => true);
+
+            // near the left (ish)
+            if (x < ( minX + widthModifier))
+            {
+                var path = astar.Search(ant.ToPoint(), new Point(x + widthModifier, y), new object());
+                if (path != null)
+                {
+                    return new Goal(ant, path, terminationFunc);
+                }
+            }
+            else if (x > ( maxX - widthModifier ))
+            {
+                var path = astar.Search(ant.ToPoint(), new Point(x - widthModifier, y), new object());
+                if (path != null)
+                {
+                    return new Goal(ant, path, terminationFunc);
+                }
+            }
+            else if (y < ( maxY + heightModifier ))
+            {
+                var path = astar.Search(ant.ToPoint(), new Point(x, y + heightModifier), new object());
+                if (path != null)
+                {
+                    return new Goal(ant, path, terminationFunc);
+                }
+            }
+            else if (y > ( maxY - heightModifier ))
+            {
+                var path = astar.Search(ant.ToPoint(), new Point(x, y - heightModifier), new object());
+                if (path != null)
+                {
+                   return new Goal(ant, path, terminationFunc);
+                }
+            }
+
+            return null;
+        }
+
+        private Goal Panic(AntLoc ant, GameState state)
+        {
+            // wander aimlessly
+            foreach (var d in Ants.Ants.Aim.Values.OrderBy(c => rng.Next()))
+            {
+                var loc = ant.GetDestination(d);
+                if (loc.IsPassable())
+                {
+                    return new Goal(ant, astar.Search(ant.ToPoint(), loc.ToPoint(), new object()), (s => true));
+                }
+            }
+
+            return null;
+        }
+
 		public override void doTurn (GameState state) 
         {
             this.Destinations.Clear();
-            this.FoodSpots.Clear();
 
-            var astar = new SpatialAStar<Tile, object>(state.Map);
+            astar = new SpatialAStar<Tile, object>(state.Map);
 
             foreach (AntLoc ant in state.MyAnts)
             {
-                if (state.TimeRemaining < 10)
+                Goal goal = this.Goals.FirstOrDefault(g => g.CurrentPoint.Col == ant.Col && g.CurrentPoint.Row == ant.Row);
+
+                if (goal != null && goal.IsTerminated(state))
                 {
-                    break;
+                    goal = null;
                 }
 
-                // performance checks
-                var searchingspots = state.FoodTiles.Where(f => !( FoodSpots.Count(s => s == f) > 1 ));
-                searchingspots = searchingspots.Where(f => f.GetDistance(ant) < GetSearchRadius(state)).OrderBy(f => f.GetDistance(ant)).Take(2);
-
-                var directions = Enumerable.Empty<Direction>();
-
-                var antpoint = ant.ToPoint();
-                var foodpoints = searchingspots.Where(f => !(FoodSpots.Count(s => s == f) > 1)).Select(f => new {
-                    Tile = f,
-                    Point = f.ToPoint(), 
-                    Path = astar.Search(ant.ToPoint(), f.ToPoint(), new Object()) ?? Enumerable.Empty<Tile>()
-                });
-
-                var closest = foodpoints.OrderBy(f => f.Path.Count()).Where(f => !(FoodSpots.Count(s => f.Tile == s) > 1)).FirstOrDefault();
-                // found something to look for
-                if (closest != null)
+                if (goal == null)
                 {
-                    var point = closest.Path.Skip(1).FirstOrDefault();
-                    FoodSpots.Add(closest.Tile);
-
-                    if (point != null)
-                        directions = ant.GetDirections(point.Location);
-                    else if (closest != null)
-                        directions = ant.GetDirections(closest.Tile);
+                    goal = FindFood(ant, state);
+                }
+                if (goal == null)
+                {
+                    goal = FindEnemies(ant, state);
+                }
+                if (goal == null)
+                {
+                    goal = SpreadOut(ant, state);
+                }
+                if (goal == null)
+                {
+                    goal = Panic(ant, state);
                 }
 
-                if (state.TimeRemaining < 10)
+                if (goal != null)
                 {
-                    break;
-                }
+                    var loc = goal.CurrentPath.Dequeue();
+                    var directions = ant.GetDirections(loc.Location);
 
-                // we found no food...lets kill some dudes...but only if I have nothing else to do.
-                //if (!directions.Any())
-                //{
-                //    var enemies = state.EnemyAnts;
-                //    if (enemies.Any())
-                //    {
-                //        // lets make sure i'm not running across the map for some guys
-                //        enemies = enemies.OrderBy(e => ant.GetDistance(e)).ToList();
-                //        var enemynum1 = enemies.FirstOrDefault();
-                //        if (enemynum1 != null)
-                //        {
-                //            var path = astar.Search(ant.ToPoint(), enemynum1.ToPoint(), new object()).First();
-                //            if (path != null) 
-                //                directions = ant.GetDirections(path.Location);
-
-                //        }
-                //    }
-                //}
-                
-                if (!directions.Any())
-                {
-                    // try and figure out how close to the edge of vision I am
-                    var x = ant.Col;
-                    var y = ant.Row;
-
-                    var minX = state.MyAnts.Min(a => a.Col);
-                    var maxX = state.MyAnts.Max(a => a.Col);
-                    var minY = state.MyAnts.Min(a => a.Row);
-                    var maxY = state.MyAnts.Max(a => a.Row);
-
-                    var widthModifier = state.Width / 50;
-                    var heightModifier = state.Height / 50;
-
-                    // near the left (ish)
-                    if (x < ( minX + widthModifier))
+                    foreach (var d in directions)
                     {
-                        var search = astar.Search(ant.ToPoint(), new Point(x + widthModifier, y), new object());
-                        if (search != null)
+                        var newLoc = ant.GetDestination(d);
+                        if (state.IsUnoccupied(newLoc) && state.IsPassable(newLoc) && !Destinations.Contains(newLoc))
                         {
-                            directions = ant.GetDirections(search.First().Location);
-                        }
-                    }
-                    else if (x > ( maxX - widthModifier ))
-                    {
-                        if (state.TimeRemaining < 10)
-                        {
+                            ant.Move(d);
+                            Destinations.Add(newLoc);
                             break;
                         }
-
-                        var search = astar.Search(ant.ToPoint(), new Point(x - widthModifier, y), new object());
-                        if (search != null)
-                        {
-                            directions = ant.GetDirections(search.First().Location);
-                        }
-                    }
-                    else if (y < ( maxY + heightModifier ))
-                    {
-                        if (state.TimeRemaining < 10)
-                        {
-                            break;
-                        }
-
-                        var search = astar.Search(ant.ToPoint(), new Point(x, y + heightModifier), new object());
-                        if (search != null)
-                        {
-                            directions = ant.GetDirections(search.First().Location);
-                        }
-                    }
-                    else if (y > ( maxY - heightModifier ))
-                    {
-                        if (state.TimeRemaining < 10)
-                        {
-                            break;
-                        }
-
-                        var search = astar.Search(ant.ToPoint(), new Point(x, y - heightModifier), new object());
-                        if (search != null)
-                        {
-                            directions = ant.GetDirections(search.First().Location);
-                        }
-                    }
-                }
-
-                if (state.TimeRemaining < 10)
-                {
-                    break;
-                }
-                
-				// wander aimlessly
-                if (!directions.Any())
-                {
-                    directions = Ants.Ants.Aim.Values.OrderBy(c => rng.Next());
-                }
-
-                if (state.TimeRemaining < 10)
-                {
-                    break;
-                }
-
-                foreach (var d in directions)
-                {
-                    var newLoc = ant.GetDestination(d);
-                    if (state.IsUnoccupied(newLoc) && state.IsPassable(newLoc) && !Destinations.Contains(newLoc))
-                    {
-                        ant.Move(d);
-                        Destinations.Add(newLoc);
-                        break;
                     }
                 }
             }

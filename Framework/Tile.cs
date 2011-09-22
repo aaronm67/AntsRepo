@@ -18,10 +18,8 @@ namespace Ants
 
         public bool IsWalkable(object inContext)
         {
-            return (this.Type == TileType.Land || this.Type == TileType.Food) && this.Location.IsUnoccupied();
+            return this.Location.IsPassable();
         }
     }
-
-    
 }
 
