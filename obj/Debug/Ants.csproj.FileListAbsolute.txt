@@ -1,7 +1,0 @@
-C:\Users\aaronm\Desktop\Ants\Ants\bin\Debug\Ants.pdb
-C:\Users\aaronm\Desktop\Ants\Ants\bin\Debug\Ants.exe
-C:\Users\aaronm\Desktop\Ants\tools\Ants.exe
-C:\Users\aaronm\Desktop\Ants\tools\Ants.pdb
-C:\Users\aaronm\Desktop\Ants\Ants\obj\Debug\ResolveAssemblyReference.cache
-C:\Users\aaronm\Desktop\Ants\Ants\obj\Debug\Ants.exe
-C:\Users\aaronm\Desktop\Ants\Ants\obj\Debug\Ants.pdb
