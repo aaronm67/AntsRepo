@@ -204,6 +204,20 @@ namespace Ants
             return d_row + d_col;
         }
 
+        public LinkedList<Tile> GetPath(Location loc1, Location loc2)
+        {
+            var curloc = loc1;
+            var ret = new LinkedList<Tile>();
+            var directions = GetDirection(loc1, loc2);
+
+            foreach (var d in directions)
+            {
+                curloc = GetDestination(curloc,d);
+                ret.AddLast(new Tile(Map[curloc.Row, curloc.Col].Type, curloc));
+            }
+
+            return ret;
+        }
         public IEnumerable<Direction> GetDirection(Location loc1, Location loc2)
         {
             // determine the 1 or 2 fastest (closest) directions to reach a location

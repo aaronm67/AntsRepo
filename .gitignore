@@ -1,3 +1,13 @@
 bin/**/*
 obj/**/*
+obj/*
 Properties/**/*
+.gitignore.swp
+.svn/
+AStar/.svn/
+FoliotekAnt.6.5.TeamCity.user
+FoliotekAnt.sln
+FoliotekAnt.suo
+**/.svn/*
+.svn/**/*
+

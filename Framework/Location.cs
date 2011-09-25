@@ -50,9 +50,21 @@ namespace Ants
 
         public Location(GameState state, int row, int col)
         {
+
             this.State = state;
-            this.Row = row;
-            this.Col = col;
+            //normalize coordinates
+            if (row >= state.Height)
+                this.Row = row - state.Height;
+            else if (row < 0)
+                this.Row = state.Height + row;
+            else
+                this.Row = row;
+            if (col >= state.Width)
+                this.Col = col - state.Width;
+            else if (col < 0)
+                this.Col = state.Width + col;
+            else
+                this.Col = col;
         }
 
         public double GetDistance(Location loc)
@@ -88,6 +100,20 @@ namespace Ants
         public System.Drawing.Point ToPoint()
         {
             return new System.Drawing.Point(this.Row, this.Col);
+        }
+        public override string ToString()
+        {
+            return "("+Row+","+Col+")";
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj is Location )
+                return ((Location)obj).Col == Col && ((Location)obj).Row == Row;
+            return base.Equals(obj);
+        }
+        public override int GetHashCode()
+        {
+            return (Row*10000)+Col;
         }
     }
 
