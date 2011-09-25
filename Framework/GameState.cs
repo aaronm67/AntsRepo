@@ -268,6 +268,8 @@ namespace Ants
                     default:
                         throw new ArgumentException();
                 }
+				
+				return Direction.East;
             });
         }
     }

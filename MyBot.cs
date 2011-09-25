@@ -27,45 +27,7 @@ namespace AntsBot
         MildlyDiscourage = 3,
         StronglyDiscourage = 4
     }
-    public class Goal
-    {
-        public Location StartPoint { get; private set; }
-        public Location CurrentPoint { get; set; }
-        public Strategy? CurrentStrategy { get; set; }
-
-        public Location EndPoint
-        {
-            get
-            {
-                return this.StartPath.Last().Location;
-            }
-        }
-
-        public IEnumerable<Tile> StartPath { get; private set; }
-
-        public Queue<Tile> CurrentPath;
-
-        public int CurrentStep;
-
-        public Func<GameState, bool> IsTerminated { get; private set; }
-
-        public bool AntExists;
-
-        public Goal(Location startPoint, IEnumerable<Tile> path, Func<GameState, bool> terminationFunc, Strategy? currentStrategy)
-        {
-            this.CurrentStep = 0;
-            this.AntExists = true;
-            this.CurrentPath = new Queue<Tile>(path);
-            this.CurrentPath.Dequeue();
-
-            this.StartPath = path;
-
-            this.StartPoint = this.CurrentPoint = startPoint;
-            this.IsTerminated = terminationFunc;
-
-            this.CurrentStrategy = currentStrategy;
-        }
-    }
+    
 
 	public class MyBot : Bot 
     {
@@ -144,7 +106,6 @@ namespace AntsBot
             var searchingspots = state.FoodTiles.Where(f => Goals.Count(g => g.EndPoint.Equals(f))==0);
             Log("searchingspots: " + searchingspots.Count());
             //searchingspots = searchingspots.Where(f => f.GetDistance(ant) < GetSearchRadius(state)).OrderBy(f => f.GetDistance(ant)).Take(2);
-            var antpoint = ant.ToPoint();
             var foodpoints = searchingspots.Select(f => new
             {
                 Tile = f,
@@ -365,7 +326,7 @@ namespace AntsBot
                     if (goal != null)
                     {
                         goal.AntExists = true;
-                        Log("ant existing goal: " + String.Join(";", goal.CurrentPath.Select(p => p.Location.ToString())) + " " + Enum.GetName(typeof(Strategy), goal.CurrentStrategy));
+                        Log("ant existing goal: " + String.Join(";", goal.CurrentPath.Select(p => p.Location.ToString()).ToArray()) + " " + Enum.GetName(typeof(Strategy), goal.CurrentStrategy));
                     }
                     else
                     {
@@ -385,7 +346,7 @@ namespace AntsBot
                             }
                         }
                         Goals.Add(goal);
-                        Log("new ant goal: " + String.Join(";", goal.CurrentPath.Select(p => p.Location.ToString())) + " " + Enum.GetName(typeof(Strategy), goal.CurrentStrategy));
+                        Log("new ant goal: " + String.Join(";", goal.CurrentPath.Select(p => p.Location.ToString()).ToArray()) + " " + Enum.GetName(typeof(Strategy), goal.CurrentStrategy));
 
                     }
 
@@ -411,7 +372,7 @@ namespace AntsBot
                 }
                 int removed = Goals.RemoveAll(g => !g.AntExists);//clean up goals for missing ants
 
-                Log("ant goals(" + Goals.Count + ", "+removed+" removed): " + String.Join(";", Goals.Select(g => "["+Enum.GetName(typeof(Strategy),g.CurrentStrategy)+"]"+g.CurrentPoint.ToString()+"->"+g.EndPoint.ToString())));
+                Log("ant goals(" + Goals.Count + ", "+removed+" removed): " + String.Join(";", Goals.Select(g => "["+Enum.GetName(typeof(Strategy),g.CurrentStrategy)+"]"+g.CurrentPoint.ToString()+"->"+g.EndPoint.ToString()).ToArray()));
                 if (removed > 0) // losing fights - condense
                 {
                     AlterStrategy(Strategy.Condense, Preference.StronglyEncourage);
