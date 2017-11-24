@@ -47,11 +47,11 @@ namespace SettlersEngine
         private OpenCloseMap m_ClosedSet;
         private OpenCloseMap m_OpenSet;
         private PriorityQueue<PathNode> m_OrderedOpenSet;
-        private PathNode[,] m_CameFrom;
+        private PathNode[][] m_CameFrom;
         private OpenCloseMap m_RuntimeGrid;
-        private PathNode[,] m_SearchSpace;
+        private PathNode[][] m_SearchSpace;
 
-        public TPathNode[,] SearchSpace { get; private set; }
+        public TPathNode[][] SearchSpace { get; private set; }
         public int Width { get; private set; }
         public int Height { get; private set; }
 
@@ -91,15 +91,20 @@ namespace SettlersEngine
             }
         }
 
-        public SpatialAStar(TPathNode[,] inGrid)
+        public SpatialAStar(TPathNode[][] inGrid)
         {
             SearchSpace = inGrid;
-            Width = inGrid.GetLength(0);
-            Height = inGrid.GetLength(1);
-            m_SearchSpace = new PathNode[Width, Height];
+            Width = inGrid.Length;
+            Height = inGrid[0].Length;
             m_ClosedSet = new OpenCloseMap(Width, Height);
             m_OpenSet = new OpenCloseMap(Width, Height);
-            m_CameFrom = new PathNode[Width, Height];
+            m_SearchSpace = new PathNode[Width][];
+            m_CameFrom = new PathNode[Width][];
+            for (int i = 0; i < Width; i++)
+            {
+                m_CameFrom[i] = new PathNode[Height];
+                m_SearchSpace[i] = new PathNode[Height];
+            }
             m_RuntimeGrid = new OpenCloseMap(Width, Height);
             m_OrderedOpenSet = new PriorityQueue<PathNode>(PathNode.Comparer);
 
@@ -107,10 +112,10 @@ namespace SettlersEngine
             {
                 for (int y = 0; y < Height; y++)
                 {
-                    if (inGrid[x, y] == null)
+                    if (inGrid[x][y] == null)
                         throw new ArgumentNullException();
 
-                    m_SearchSpace[x, y] = new PathNode(x, y, inGrid[x, y]);
+                    m_SearchSpace[x][y] = new PathNode(x, y, inGrid[x][y]);
                 }
             }
         }
@@ -148,8 +153,8 @@ namespace SettlersEngine
         /// </summary>
         public LinkedList<TPathNode> Search(System.Drawing.Point inStartNode, System.Drawing.Point inEndNode, TUserContext inUserContext)
         {
-            PathNode startNode = m_SearchSpace[inStartNode.X, inStartNode.Y];
-            PathNode endNode = m_SearchSpace[inEndNode.X, inEndNode.Y];
+            PathNode startNode = m_SearchSpace[inStartNode.X][inStartNode.Y];
+            PathNode endNode = m_SearchSpace[inEndNode.X][inEndNode.Y];
 
             //System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
             //watch.Start();
@@ -168,7 +173,7 @@ namespace SettlersEngine
             {
                 for (int y = 0; y < Height; y++)
                 {
-                    m_CameFrom[x, y] = null;
+                    m_CameFrom[x][y] = null;
                 }
             }
 
@@ -194,7 +199,7 @@ namespace SettlersEngine
 
                     //elapsed.Add(watch.ElapsedMilliseconds);
 
-                    LinkedList<TPathNode> result = ReconstructPath(m_CameFrom, m_CameFrom[endNode.X, endNode.Y]);
+                    LinkedList<TPathNode> result = ReconstructPath(m_CameFrom, m_CameFrom[endNode.X][endNode.Y]);
 
                     result.AddLast(endNode.UserContext);
 
@@ -242,7 +247,7 @@ namespace SettlersEngine
 
                     if (tentative_is_better)
                     {
-                        m_CameFrom[y.X, y.Y] = x;
+                        m_CameFrom[y.X][y.Y] = x;
 
                         if (!m_RuntimeGrid.Contains(y))
                             m_RuntimeGrid.Add(y);
@@ -262,7 +267,7 @@ namespace SettlersEngine
             return null;
         }
 
-        private LinkedList<TPathNode> ReconstructPath(PathNode[,] came_from, PathNode current_node)
+        private LinkedList<TPathNode> ReconstructPath(PathNode[][] came_from, PathNode current_node)
         {
             LinkedList<TPathNode> result = new LinkedList<TPathNode>();
 
@@ -271,9 +276,9 @@ namespace SettlersEngine
             return result;
         }
 
-        private void ReconstructPathRecursive(PathNode[,] came_from, PathNode current_node, LinkedList<TPathNode> result)
+        private void ReconstructPathRecursive(PathNode[][] came_from, PathNode current_node, LinkedList<TPathNode> result)
         {
-            PathNode item = came_from[current_node.X, current_node.Y];
+            PathNode item = came_from[current_node.X][current_node.Y];
 
             if (item != null)
             {
@@ -291,49 +296,49 @@ namespace SettlersEngine
             int y = inAround.Y;
 
             if (( x > 0 ) && ( y > 0 ))
-                inNeighbors[0] = m_SearchSpace[x - 1, y - 1];
+                inNeighbors[0] = m_SearchSpace[x - 1][y - 1];
             else
                 inNeighbors[0] = null;
 
             if (y > 0)
-                inNeighbors[1] = m_SearchSpace[x, y - 1];
+                inNeighbors[1] = m_SearchSpace[x][y - 1];
             else
                 inNeighbors[1] = null;
 
             if (( x < Width - 1 ) && ( y > 0 ))
-                inNeighbors[2] = m_SearchSpace[x + 1, y - 1];
+                inNeighbors[2] = m_SearchSpace[x + 1][y - 1];
             else
                 inNeighbors[2] = null;
 
             if (x > 0)
-                inNeighbors[3] = m_SearchSpace[x - 1, y];
+                inNeighbors[3] = m_SearchSpace[x - 1][y];
             else
                 inNeighbors[3] = null;
 
             if (x < Width - 1)
-                inNeighbors[4] = m_SearchSpace[x + 1, y];
+                inNeighbors[4] = m_SearchSpace[x + 1][y];
             else
                 inNeighbors[4] = null;
 
             if (( x > 0 ) && ( y < Height - 1 ))
-                inNeighbors[5] = m_SearchSpace[x - 1, y + 1];
+                inNeighbors[5] = m_SearchSpace[x - 1][y + 1];
             else
                 inNeighbors[5] = null;
 
             if (y < Height - 1)
-                inNeighbors[6] = m_SearchSpace[x, y + 1];
+                inNeighbors[6] = m_SearchSpace[x][y + 1];
             else
                 inNeighbors[6] = null;
 
             if (( x < Width - 1 ) && ( y < Height - 1 ))
-                inNeighbors[7] = m_SearchSpace[x + 1, y + 1];
+                inNeighbors[7] = m_SearchSpace[x + 1][y + 1];
             else
                 inNeighbors[7] = null;
         }
 
         private class OpenCloseMap
         {
-            private PathNode[,] m_Map;
+            private PathNode[][] m_Map;
             public int Width { get; private set; }
             public int Height { get; private set; }
             public int Count { get; private set; }
@@ -342,7 +347,7 @@ namespace SettlersEngine
             {
                 get
                 {
-                    return m_Map[x, y];
+                    return m_Map[x][y];
                 }
             }
 
@@ -350,7 +355,7 @@ namespace SettlersEngine
             {
                 get
                 {
-                    return m_Map[Node.X, Node.Y];
+                    return m_Map[Node.X][Node.Y];
                 }
 
             }
@@ -365,14 +370,16 @@ namespace SettlersEngine
 
             public OpenCloseMap(int inWidth, int inHeight)
             {
-                m_Map = new PathNode[inWidth, inHeight];
+                m_Map = new PathNode[inWidth][];
+                for (int i = 0; i < inWidth; i++)
+                    m_Map[i] = new PathNode[inHeight];
                 Width = inWidth;
                 Height = inHeight;
             }
 
             public void Add(PathNode inValue)
             {
-                PathNode item = m_Map[inValue.X, inValue.Y];
+                PathNode item = m_Map[inValue.X][inValue.Y];
 
 #if DEBUG
                 if (item != null)
@@ -380,12 +387,12 @@ namespace SettlersEngine
 #endif
 
                 Count++;
-                m_Map[inValue.X, inValue.Y] = inValue;
+                m_Map[inValue.X][inValue.Y] = inValue;
             }
 
             public bool Contains(PathNode inValue)
             {
-                PathNode item = m_Map[inValue.X, inValue.Y];
+                PathNode item = m_Map[inValue.X][inValue.Y];
 
                 if (item == null)
                     return false;
@@ -400,7 +407,7 @@ namespace SettlersEngine
 
             public void Remove(PathNode inValue)
             {
-                PathNode item = m_Map[inValue.X, inValue.Y];
+                PathNode item = m_Map[inValue.X][inValue.Y];
 
 #if DEBUG
                 if (!inValue.Equals(item))
@@ -408,7 +415,7 @@ namespace SettlersEngine
 #endif
 
                 Count--;
-                m_Map[inValue.X, inValue.Y] = null;
+                m_Map[inValue.X][inValue.Y] = null;
             }
 
             public void Clear()
@@ -419,7 +426,7 @@ namespace SettlersEngine
                 {
                     for (int y = 0; y < Height; y++)
                     {
-                        m_Map[x, y] = null;
+                        m_Map[x][y] = null;
                     }
                 }
             }
